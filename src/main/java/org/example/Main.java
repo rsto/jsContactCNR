@@ -15,12 +15,8 @@ import java.nio.charset.StandardCharsets;
 import static java.net.HttpURLConnection.*;
 
 public class Main {
-    private static final VCard2JSContact vCard2JSContact = VCard2JSContact.builder()
-            .config(VCard2JSContactConfig.builder().build())
-            .build();
-    private static final JSContact2VCard jsContact2vCard = JSContact2VCard.builder()
-            .config(JSContact2VCardConfig.builder().build())
-            .build();
+    private static final VCard2JSContact vCard2JSContact = VCard2JSContact.builder().config(VCard2JSContactConfig.builder().build()).build();
+    private static final JSContact2VCard jsContact2vCard = JSContact2VCard.builder().config(JSContact2VCardConfig.builder().setCardMustBeValidated(true).build()).build();
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void main(String[] args) throws Exception {
@@ -37,21 +33,29 @@ public class Main {
 
             var reqBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
             var reqCType = exchange.getRequestHeaders().getFirst("Content-Type");
-            String resCType;
-            String resBody;
+            String resCType = null;
+            String resBody = null;
             int statusCode;
 
             try {
                 if ("text/vcard".equals(reqCType)) {
                     var cards = vCard2JSContact.convert(reqBody);
-                    resCType = "application/jscontact+json";
-                    resBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cards);
-                    statusCode = HTTP_OK;
+                    if (cards.isEmpty()) {
+                        statusCode = 422;
+                    } else {
+                        resCType = "application/jscontact+json";
+                        resBody = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(cards.get(0));
+                        statusCode = HTTP_OK;
+                    }
                 } else if ("application/jscontact+json".equals(reqCType)) {
                     var cards = Card.toJSCards(reqBody);
-                    resCType = "text/vcard";
-                    resBody = jsContact2vCard.convertToText(cards);
-                    statusCode = HTTP_OK;
+                    if (cards.length == 0) {
+                        statusCode = 422;
+                    } else {
+                        resCType = "text/vcard";
+                        resBody = jsContact2vCard.convertToText(cards[0]);
+                        statusCode = HTTP_OK;
+                    }
                 } else {
                     statusCode = HTTP_UNSUPPORTED_TYPE;
                     resCType = "application/jscontact+json";
@@ -61,11 +65,19 @@ public class Main {
                 statusCode = HTTP_BAD_REQUEST;
                 resCType = "text/plain";
                 resBody = e.getMessage();
+            } catch (Exception e) {
+                statusCode = HTTP_SERVER_ERROR;
+                resCType = "text/plain";
+                resBody = e.getMessage();
             }
 
-            exchange.getResponseHeaders().add("Content-Type", resCType);
+            if (resCType != null) {
+                exchange.getResponseHeaders().add("Content-Type", resCType);
+            }
             exchange.sendResponseHeaders(statusCode, 0);
-            exchange.getResponseBody().write(resBody.getBytes(StandardCharsets.UTF_8));
+            if (resBody != null) {
+                exchange.getResponseBody().write(resBody.getBytes(StandardCharsets.UTF_8));
+            }
             exchange.getResponseBody().close();
         });
 
