@@ -19,11 +19,36 @@ public class Main {
     private static final JSContact2VCard jsContact2vCard = JSContact2VCard.builder().config(JSContact2VCardConfig.builder().setCardMustBeValidated(true).build()).build();
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    public static void usage() {
+        System.out.println("Arguments:");
+        System.out.println(" <host>:<port> (default: \"localhost:8080\"");
+        System.exit(-1);
+    }
     public static void main(String[] args) throws Exception {
-        HttpServer server = HttpServer.create(new InetSocketAddress("localhost", 8080), 0);
+        String hostname = "localhost";
+        int port = 8080;
 
+        if (args.length > 1) {
+            usage();
+        }
+
+        if (args.length == 1) {
+            var vals = args[0].split(":", 2);
+            if (vals.length != 2) {
+                usage();
+            }
+            hostname = vals[0];
+            try {
+                port = Integer.parseInt(vals[1]);
+            } catch (NumberFormatException e) {
+                usage();
+            }
+        }
+
+        System.out.println("Starting server listening on " + hostname + ":" + port);
+
+        HttpServer server = HttpServer.create(new InetSocketAddress(hostname, port), 0);
         server.createContext("/convert", exchange -> {
-
             if (!"POST".equals(exchange.getRequestMethod())) {
                 exchange.getResponseHeaders().add("Allow", "POST");
                 exchange.sendResponseHeaders(HTTP_BAD_METHOD, 0);
