@@ -63,7 +63,7 @@ public class Main {
             int statusCode;
 
             try {
-                if ("text/vcard".equals(reqCType)) {
+                if ("text/vcard;charset=utf-8".equals(reqCType)) {
                     var cards = vCard2JSContact.convert(reqBody);
                     if (cards.isEmpty()) {
                         statusCode = 422;
@@ -77,7 +77,7 @@ public class Main {
                     if (cards.length == 0) {
                         statusCode = 422;
                     } else {
-                        resCType = "text/vcard";
+                        resCType = "text/vcard;charset=utf-8";
                         resBody = jsContact2vCard.convertToText(cards[0]);
                         statusCode = HTTP_OK;
                     }
@@ -101,7 +101,8 @@ public class Main {
             }
             exchange.sendResponseHeaders(statusCode, 0);
             if (resBody != null) {
-                exchange.getResponseBody().write(resBody.getBytes(StandardCharsets.UTF_8));
+                var utf8ResBody = resBody.getBytes(StandardCharsets.UTF_8);
+                exchange.getResponseBody().write(utf8ResBody);
             }
             exchange.getResponseBody().close();
         });
