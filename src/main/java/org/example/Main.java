@@ -87,7 +87,7 @@ public class Main {
                     resBody = "Must be text/vcard or application/jscontact+json";
                 }
             } catch (CardException e) {
-                statusCode = HTTP_BAD_REQUEST;
+                statusCode = 422; // Unprocessable Content
                 resCType = "text/plain";
                 resBody = e.getMessage();
             } catch (Exception e) {
