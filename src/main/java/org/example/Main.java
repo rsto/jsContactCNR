@@ -15,8 +15,13 @@ import java.nio.charset.StandardCharsets;
 import static java.net.HttpURLConnection.*;
 
 public class Main {
-    private static final VCard2JSContact vCard2JSContact = VCard2JSContact.builder().config(VCard2JSContactConfig.builder().build()).build();
-    private static final JSContact2VCard jsContact2vCard = JSContact2VCard.builder().config(JSContact2VCardConfig.builder().setCardMustBeValidated(true).build()).build();
+    private static final VCard2JSContact vCard2JSContact = VCard2JSContact.builder().config(VCard2JSContactConfig.builder()
+            .usePropIds(true)
+            .setAutoFullAddress(false)
+            .build()).build();
+    private static final JSContact2VCard jsContact2vCard = JSContact2VCard.builder().config(JSContact2VCardConfig.builder()
+            .validateCard(true)
+            .build()).build();
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static void usage() {
@@ -24,6 +29,7 @@ public class Main {
         System.out.println(" <host>:<port> (default: \"localhost:8080\"");
         System.exit(-1);
     }
+
     public static void main(String[] args) throws Exception {
         String hostname = "localhost";
         int port = 8080;
